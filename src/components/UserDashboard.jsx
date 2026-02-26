@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import Nav from './NaV.JSX'
+import Nav from './Nav'
 import { categories } from '../category'
 import { FaCircleChevronLeft, FaCircleChevronRight } from 'react-icons/fa6'
 import { useSelector } from 'react-redux'

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import { IoIosArrowRoundBack } from "react-icons/io";
 import FoodCard from '../components/FoodCard'
-import Nav from '../components/NaV.JSX'
+import Nav from '../components/Nav'
 
 function CategoryPage() {
   const { categoryName } = useParams()
