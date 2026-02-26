@@ -1,0 +1,262 @@
+@import "tailwindcss";
+
+:root {
+  --primary-color: #e23744;
+  --primary-hover: #cb202d;
+  --primary-light: #ffedef;
+  --bg-color: #ffffff;
+  --secondary-bg: #f8f8f8;
+  --text-dark: #1c1c1c;
+  --text-gray: #696969;
+  --text-light: #9c9c9c;
+  --border-color: #e8e8e8;
+  --shadow-sm: 0 2px 4px rgba(28, 28, 28, 0.04);
+  --shadow-md: 0 2px 8px rgba(28, 28, 28, 0.08);
+  --shadow-lg: 0 4px 12px rgba(28, 28, 28, 0.08);
+  --shadow-xl: 0 8px 20px rgba(28, 28, 28, 0.12);
+  --gradient-primary: linear-gradient(to right, #e23744 0%, #f05662 100%);
+  --gradient-overlay: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.5) 100%);
+  --transition-base: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --zomato-red: #e23744;
+  --zomato-dark: #1c1c1c;
+}
+
+* {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;  /* IE/Edge */
+}
+
+::-webkit-scrollbar, 
+::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+body {
+  font-family: 'Okra', 'Helvetica Neue', 'Arial', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--bg-color);
+  color: var(--text-dark);
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Gradient text */
+.gradient-text {
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Zomato-style card */
+.zomato-card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: var(--shadow-md);
+  transition: var(--transition-base);
+}
+
+.zomato-card:hover {
+  box-shadow: var(--shadow-lg);
+}
+
+/* Glassmorphism effect */
+.glass {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* Card animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.animate-fadeInUp {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.4s ease-out;
+}
+
+.animate-slideInRight {
+  animation: slideInRight 0.5s ease-out;
+}
+
+.animate-scaleIn {
+  animation: scaleIn 0.4s ease-out;
+}
+
+/* Hover effects */
+.hover-lift {
+  transition: var(--transition-base);
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-xl);
+}
+
+.hover-shadow:hover {
+  box-shadow: var(--shadow-lg);
+}
+
+/* Button styles */
+.btn-primary {
+  background: var(--zomato-red);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: var(--transition-base);
+  box-shadow: none;
+  border: none;
+}
+
+.btn-primary:hover {
+  background: var(--primary-hover);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
+}
+
+.btn-outline {
+  background: white;
+  color: var(--zomato-red);
+  border: 1px solid var(--border-color);
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: var(--transition-base);
+}
+
+.btn-outline:hover {
+  border-color: var(--zomato-red);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Loading shimmer */
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    #f0f0f0 0%,
+    #e0e0e0 50%,
+    #f0f0f0 100%
+  );
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* Custom scrollbar for elements that need it */
+.custom-scrollbar::-webkit-scrollbar {
+  display: block;
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--primary-color);
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-hover);
+}
+
+/* Explicitly hide scrollbar */
+.scrollbar-hide {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;  /* IE/Edge */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* Floating animation */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.float-animation {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Pulse animation for notifications */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.pulse-animation {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
