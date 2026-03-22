@@ -1,8 +1,7 @@
 import axios from 'axios'
 import React, { useEffect } from 'react'
-import { serverUrl } from '../App'
 import { useDispatch, useSelector } from 'react-redux'
-import {  setCurrentAddress, setCurrentCity, setCurrentState, setUserData } from '../redux/userSlice'
+import { setCurrentAddress, setCurrentCity, setCurrentState } from '../redux/userSlice'
 import { setAddress, setLocation } from '../redux/mapSlice'
 
 function useGetCity() {
@@ -27,12 +26,22 @@ function useGetCity() {
             dispatch(setLocation({lat:latitude,lon:longitude}))
             
             try {
-                const result = await axios.get(`https://api.geoapify.com/v1/geocode/reverse?lat=${latitude}&lon=${longitude}&format=json&apiKey=${apiKey}`)
+                const result = await axios.get(`https://api.geoapify.com/v1/geocode/reverse?lat=${latitude}&lon=${longitude}&format=json&apiKey=${apiKey}`, {
+                        withCredentials: false,
+                        headers: { Authorization: undefined }
+                    })
                 console.log("City updated:", result.data)
-                dispatch(setCurrentCity(result?.data?.results[0]?.city||result?.data?.results[0]?.county || "Barasat"))
-                dispatch(setCurrentState(result?.data?.results[0]?.state || "West Bengal"))
-                dispatch(setCurrentAddress(result?.data?.results[0]?.address_line2 || result?.data?.results[0]?.address_line1 || "Barasat"))
-                dispatch(setAddress(result?.data?.results[0]?.address_line2 || "Barasat"))
+                const place = result?.data?.results?.[0]
+                if (place?.city || place?.county) {
+                    dispatch(setCurrentCity(place.city || place.county))
+                }
+                if (place?.state) {
+                    dispatch(setCurrentState(place.state))
+                }
+                if (place?.address_line2 || place?.address_line1) {
+                    dispatch(setCurrentAddress(place.address_line2 || place.address_line1))
+                    dispatch(setAddress(place.address_line2 || place.address_line1))
+                }
             } catch (error) {
                 console.log("Location API error:", error)
             }

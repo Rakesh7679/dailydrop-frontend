@@ -6,13 +6,13 @@ import { useDispatch, useSelector } from 'react-redux'
 import { RxCross2 } from 'react-icons/rx'
 import axios from 'axios'
 import { serverUrl } from '../App'
-import { setSearchItems, setUserData } from '../redux/userSlice'
+import { clearOwnerUnreadOrders, setSearchItems, setUserData } from '../redux/userSlice'
 import { FaPlus } from 'react-icons/fa6'
 import { TbReceipt2 } from 'react-icons/tb'
 import { useNavigate } from 'react-router-dom'
 
 function Nav() {
-  const { userData, currentCity, currentAddress, cartItems } = useSelector(state => state.user)
+  const { userData, currentCity, currentAddress, cartItems, ownerUnreadOrders } = useSelector(state => state.user)
   const { myShopData } = useSelector(state => state.owner)
   const [showInfo, setShowInfo] = useState(false)
   const [showSearch, setShowSearch] = useState(false)
@@ -39,6 +39,11 @@ function Nav() {
         console.log(error)
       }
     }
+
+  const handleOwnerOrdersClick = () => {
+    dispatch(clearOwnerUnreadOrders())
+    navigate('/my-orders')
+  }
 
   useEffect(() => {
     if (query) {
@@ -155,17 +160,27 @@ function Nav() {
             )}
 
             <button
-              className='hidden md:flex items-center gap-1.5 px-3 py-1.5 cursor-pointer rounded-lg bg-gray-100 text-gray-800 text-sm font-semibold hover:bg-gray-200 transition-all'
-              onClick={() => navigate('/my-orders')}
+              className='hidden md:flex items-center gap-1.5 px-3 py-1.5 cursor-pointer rounded-lg bg-gray-100 text-gray-800 text-sm font-semibold hover:bg-gray-200 transition-all relative'
+              onClick={handleOwnerOrdersClick}
             >
               <TbReceipt2 size={16} />
               <span>Orders</span>
+              {ownerUnreadOrders > 0 && (
+                <span className='absolute -top-2 -right-2 min-w-5 h-5 px-1 rounded-full bg-[#e23744] text-white text-[10px] font-bold flex items-center justify-center animate-pulse'>
+                  {ownerUnreadOrders > 99 ? '99+' : ownerUnreadOrders}
+                </span>
+              )}
             </button>
             <button
-              className='md:hidden flex items-center p-2 cursor-pointer rounded-lg bg-gray-100 text-gray-800 hover:bg-gray-200 transition-all'
-              onClick={() => navigate('/my-orders')}
+              className='md:hidden flex items-center p-2 cursor-pointer rounded-lg bg-gray-100 text-gray-800 hover:bg-gray-200 transition-all relative'
+              onClick={handleOwnerOrdersClick}
             >
               <TbReceipt2 size={16} />
+              {ownerUnreadOrders > 0 && (
+                <span className='absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-[#e23744] text-white text-[9px] font-bold flex items-center justify-center'>
+                  {ownerUnreadOrders > 9 ? '9+' : ownerUnreadOrders}
+                </span>
+              )}
             </button>
           </>
         ) : (

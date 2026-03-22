@@ -4,7 +4,7 @@ import { IoIosArrowRoundBack } from "react-icons/io";
 import { useNavigate } from 'react-router-dom';
 import UserOrderCard from '../components/UserOrderCard';
 import OwnerOrderCard from '../components/OwnerOrderCard';
-import { setMyOrders, updateOrderStatus, updateRealtimeOrderStatus } from '../redux/userSlice';
+import { clearOwnerUnreadOrders } from '../redux/userSlice';
 import axios from 'axios';
 import { serverUrl } from '../App';
 
@@ -45,6 +45,17 @@ function MyOrders() {
     }
   }
 
+  const cancelAssignment = async (assignmentId) => {
+    try {
+      await axios.post(`${serverUrl}/api/order/cancel-assignment/${assignmentId}`, {}, { withCredentials: true })
+      await getAssignments()
+      await getCurrentOrder()
+    } catch (error) {
+      console.log(error)
+      alert(error.response?.data?.message || "Failed to cancel assignment")
+    }
+  }
+
   useEffect(() => {
     if (userData?.role === 'deliveryBoy') {
       getAssignments()
@@ -63,24 +74,11 @@ function MyOrders() {
     }
   }, [socket, userData])
 
-  useEffect(()=>{
-socket?.on('newOrder',(data)=>{
-if(data.shopOrders?.owner._id==userData._id){
-dispatch(setMyOrders([data,...myOrders]))
-}
-})
-
-socket?.on('update-status',({orderId,shopId,status,userId})=>{
-if(userId==userData._id){
-  dispatch(updateRealtimeOrderStatus({orderId,shopId,status}))
-}
-})
-
-return ()=>{
-  socket?.off('newOrder')
-  socket?.off('update-status')
-}
-  },[socket])
+  useEffect(() => {
+    if (userData?.role === 'owner') {
+      dispatch(clearOwnerUnreadOrders())
+    }
+  }, [userData?.role, dispatch])
 
 
 
@@ -104,12 +102,20 @@ return ()=>{
             {currentOrder && (
               <div className='bg-green-50 border border-green-200 rounded-xl p-4 mb-4'>
                 <p className='text-green-700 font-semibold text-sm'>You have an active delivery. Complete it first to accept new orders.</p>
-                <button 
-                  className='mt-2 bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-green-600'
-                  onClick={() => navigate('/')}
-                >
-                  Go to Current Order
-                </button>
+                <div className='mt-2 flex items-center gap-2'>
+                  <button 
+                    className='bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-green-600'
+                    onClick={() => navigate('/')}
+                  >
+                    Go to Current Order
+                  </button>
+                  <button
+                    className='bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-red-600'
+                    onClick={() => cancelAssignment(currentOrder.assignmentId)}
+                  >
+                    Cancel Delivery
+                  </button>
+                </div>
               </div>
             )}
             
@@ -132,6 +138,12 @@ return ()=>{
                       disabled={currentOrder}
                     >
                       Accept
+                    </button>
+                    <button
+                      className='ml-2 bg-gray-200 text-gray-700 px-5 py-2 rounded-lg font-semibold hover:bg-gray-300 transition-all'
+                      onClick={() => cancelAssignment(a.assignmentId)}
+                    >
+                      Cancel
                     </button>
                   </div>
                 </div>

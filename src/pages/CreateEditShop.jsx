@@ -13,6 +13,7 @@ function CreateEditShop() {
     const navigate = useNavigate()
     const { myShopData } = useSelector(state => state.owner)
     const { currentCity,currentState,currentAddress } = useSelector(state => state.user)
+    const { location } = useSelector(state => state.map)
     const [name,setName]=useState(myShopData?.name || "")
      const [address,setAddress]=useState(myShopData?.address || currentAddress)
      const [city,setCity]=useState(myShopData?.city || currentCity)
@@ -35,7 +36,11 @@ function CreateEditShop() {
            formData.append("name",name) 
            formData.append("city",city) 
            formData.append("state",state) 
-           formData.append("address",address) 
+           formData.append("address",address)
+           if(location?.lat && location?.lon){
+            formData.append("latitude",location.lat)
+            formData.append("longitude",location.lon)
+           }
            if(backendImage){
             formData.append("image",backendImage)
            }
@@ -50,7 +55,7 @@ function CreateEditShop() {
        }
     return (
         <div className='flex justify-center flex-col items-center p-6 pb-20 md:pb-6 bg-gray-50 relative min-h-screen'>
-            <div className='absolute top-[20px] left-[20px] z-[10] mb-[10px]' onClick={() => navigate("/")}>
+            <div className='absolute top-5 left-5 z-10 mb-2.5' onClick={() => navigate("/")}>
                 <IoIosArrowRoundBack size={35} className='text-[#e23744]' />
             </div>
 

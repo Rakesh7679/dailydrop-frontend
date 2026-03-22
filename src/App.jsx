@@ -25,7 +25,7 @@ import Shop from './pages/Shop'
 import CategoryPage from './pages/CategoryPage'
 import { useEffect } from 'react'
 import { io } from 'socket.io-client'
-import { setSocket } from './redux/userSlice'
+import { addRealtimeOwnerOrder, setSocket, updateRealtimeOrderStatus } from './redux/userSlice'
 
 // Production URL for deployed backend
 export const serverUrl = window.location.hostname === 'localhost' 
@@ -46,17 +46,40 @@ useUpdateLocation()
 if(!userData) return
 const socketInstance=io(serverUrl,{withCredentials:true})
 dispatch(setSocket(socketInstance))
-socketInstance.on('connect',()=>{
-if(userData){
+
+const onConnect = () => {
   socketInstance.emit('identity',{userId:userData._id})
 }
-})
+
+const onNewOrder = (data) => {
+  if (userData?.role !== "owner") return
+
+  const ownerId = data?.shopOrders?.owner?._id || data?.shopOrders?.owner
+  if (String(ownerId) === String(userData?._id)) {
+    dispatch(addRealtimeOwnerOrder(data))
+  }
+}
+
+const onUpdateStatus = ({ orderId, shopId, status, userId }) => {
+  if (userData?.role !== "user") return
+  if (String(userId) === String(userData?._id)) {
+    dispatch(updateRealtimeOrderStatus({ orderId, shopId, status }))
+  }
+}
+
+socketInstance.on('connect', onConnect)
+socketInstance.on('newOrder', onNewOrder)
+socketInstance.on('update-status', onUpdateStatus)
+
 return ()=>{
+  socketInstance.off('connect', onConnect)
+  socketInstance.off('newOrder', onNewOrder)
+  socketInstance.off('update-status', onUpdateStatus)
   if(socketInstance.connected){
     socketInstance.disconnect()
   }
 }
-  },[userData?._id, dispatch, userData])
+  },[userData, userData?._id, userData?.role, dispatch])
 
   return (
     <>

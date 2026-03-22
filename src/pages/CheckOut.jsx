@@ -13,12 +13,14 @@ import axios from 'axios';
 import { FaMobileScreenButton } from "react-icons/fa6";
 import { useNavigate } from 'react-router-dom';
 import { serverUrl } from '../App';
-import { addMyOrder, setTotalAmount, clearCart } from '../redux/userSlice';
+import { addMyOrder, clearCart } from '../redux/userSlice';
 function RecenterMap({ location }) {
-  if (location.lat && location.lon) {
-    const map = useMap()
+  const map = useMap()
+  useEffect(() => {
+    if (location.lat && location.lon) {
     map.setView([location.lat, location.lon], 16, { animate: true })
-  }
+    }
+  }, [location.lat, location.lon, map])
   return null
 
 }
@@ -27,6 +29,7 @@ function CheckOut() {
   const { location, address } = useSelector(state => state.map)
     const { cartItems ,totalAmount,userData} = useSelector(state => state.user)
   const [addressInput, setAddressInput] = useState("")
+  const [originalLocation, setOriginalLocation] = useState(null)
   const [paymentMethod, setPaymentMethod] = useState("cod")
   const navigate=useNavigate()
   const dispatch = useDispatch()
@@ -44,6 +47,16 @@ function CheckOut() {
     dispatch(setLocation({ lat, lon: lng }))
     getAddressByLatLng(lat, lng)
   }
+
+  const moveToOriginalLocation = () => {
+    if (originalLocation?.lat && originalLocation?.lon) {
+      dispatch(setLocation({ lat: originalLocation.lat, lon: originalLocation.lon }))
+      getAddressByLatLng(originalLocation.lat, originalLocation.lon)
+      return
+    }
+    getCurrentLocation()
+  }
+
   const getCurrentLocation = () => {
     if (!navigator.geolocation) {
       alert("Geolocation is not supported in this browser. Please enter address manually.")
@@ -54,6 +67,7 @@ function CheckOut() {
       (position) => {
         const latitude = position.coords.latitude
         const longitude = position.coords.longitude
+        setOriginalLocation({ lat: latitude, lon: longitude })
         dispatch(setLocation({ lat: latitude, lon: longitude }))
         getAddressByLatLng(latitude, longitude)
       },
@@ -63,6 +77,7 @@ function CheckOut() {
         if(userData?.location?.coordinates?.[0] && userData?.location?.coordinates?.[1]) {
           const latitude = userData.location.coordinates[1]
           const longitude = userData.location.coordinates[0]
+          setOriginalLocation({ lat: latitude, lon: longitude })
           dispatch(setLocation({ lat: latitude, lon: longitude }))
           getAddressByLatLng(latitude, longitude)
           if (!sessionStorage.getItem("checkoutFallbackLocationNoticeShown")) {
@@ -87,9 +102,11 @@ function CheckOut() {
 
   const getAddressByLatLng = async (lat, lng) => {
     try {
-
-      const result = await axios.get(`https://api.geoapify.com/v1/geocode/reverse?lat=${lat}&lon=${lng}&format=json&apiKey=${apiKey}`)
-      dispatch(setAddress(result?.data?.results[0].address_line2))
+      const result = await axios.get(`https://api.geoapify.com/v1/geocode/reverse?lat=${lat}&lon=${lng}&format=json&apiKey=${apiKey}`, {
+        withCredentials: false,
+        headers: { Authorization: undefined }
+      })
+      dispatch(setAddress(result?.data?.results?.[0]?.address_line2 || result?.data?.results?.[0]?.address_line1 || addressInput))
     } catch (error) {
       console.log(error)
     }
@@ -97,7 +114,10 @@ function CheckOut() {
 
   const getLatLngByAddress = async () => {
     try {
-      const result = await axios.get(`https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(addressInput)}&apiKey=${apiKey}`)
+      const result = await axios.get(`https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(addressInput)}&apiKey=${apiKey}`, {
+        withCredentials: false,
+        headers: { Authorization: undefined }
+      })
       const { lat, lon } = result.data.features[0].properties
       dispatch(setLocation({ lat, lon }))
     } catch (error) {
@@ -182,7 +202,9 @@ const openRazorpayWindow=(orderId,razorOrder)=>{
     if (!location.lat) {
       getCurrentLocation()
     }
-  }, [userData])
+    // getCurrentLocation intentionally uses latest runtime values from this component.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userData, location.lat])
 
   return (
     <div className='min-h-screen bg-[#fff9f6] flex items-center justify-center p-6 pb-20 md:pb-6'>
@@ -212,7 +234,14 @@ const openRazorpayWindow=(orderId,razorOrder)=>{
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
                 <RecenterMap location={location} />
-                <Marker position={[location.lat, location.lon]} draggable eventHandlers={{ dragend: onDragEnd }} />
+                <Marker
+                  position={[location.lat, location.lon]}
+                  draggable
+                  eventHandlers={{
+                    dragend: onDragEnd,
+                    click: moveToOriginalLocation
+                  }}
+                />
 
 
               </MapContainer>

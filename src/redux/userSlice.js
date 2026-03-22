@@ -1,5 +1,37 @@
 import { createSlice, current } from "@reduxjs/toolkit";
 
+const getSavedCartState = () => {
+  try {
+    if (typeof window === "undefined" || !window.localStorage) {
+      return { cartItems: [], totalAmount: 0 }
+    }
+
+    const raw = localStorage.getItem("vingo_cart")
+    if (!raw) return { cartItems: [], totalAmount: 0 }
+
+    const parsed = JSON.parse(raw)
+    const cartItems = Array.isArray(parsed?.cartItems) ? parsed.cartItems : []
+    const totalAmount = cartItems.reduce((sum, i) => sum + (Number(i.price) || 0) * (Number(i.quantity) || 0), 0)
+    return { cartItems, totalAmount }
+  } catch (error) {
+    return { cartItems: [], totalAmount: 0 }
+  }
+}
+
+const saveCartState = (cartItems) => {
+  try {
+    if (typeof window === "undefined" || !window.localStorage) return
+
+    const safeItems = Array.isArray(cartItems) ? cartItems : []
+    const totalAmount = safeItems.reduce((sum, i) => sum + (Number(i.price) || 0) * (Number(i.quantity) || 0), 0)
+    localStorage.setItem("vingo_cart", JSON.stringify({ cartItems: safeItems, totalAmount }))
+  } catch (error) {
+    // Ignore storage quota/private mode errors to keep app functional
+  }
+}
+
+const savedCartState = getSavedCartState()
+
 const userSlice = createSlice({
   name: "user",
   initialState: {
@@ -9,9 +41,10 @@ const userSlice = createSlice({
     currentAddress: null,
     shopInMyCity: null,
     itemsInMyCity: null,
-    cartItems: [],
-    totalAmount: 0,
+    cartItems: savedCartState.cartItems,
+    totalAmount: savedCartState.totalAmount,
     myOrders: [],
+    ownerUnreadOrders: 0,
     searchItems: null,
     socket: null
   },
@@ -47,6 +80,7 @@ const userSlice = createSlice({
       }
 
       state.totalAmount = state.cartItems.reduce((sum, i) => sum + i.price * i.quantity, 0)
+      saveCartState(state.cartItems)
 
     },
 
@@ -63,18 +97,42 @@ const userSlice = createSlice({
         item.quantity = quantity
       }
       state.totalAmount = state.cartItems.reduce((sum, i) => sum + i.price * i.quantity, 0)
+      saveCartState(state.cartItems)
     },
 
     removeCartItem: (state, action) => {
       state.cartItems = state.cartItems.filter(i => i.id !== action.payload)
       state.totalAmount = state.cartItems.reduce((sum, i) => sum + i.price * i.quantity, 0)
+      saveCartState(state.cartItems)
     },
 
     setMyOrders: (state, action) => {
       state.myOrders = action.payload
+      state.ownerUnreadOrders = 0
     },
     addMyOrder: (state, action) => {
       state.myOrders = [action.payload, ...state.myOrders]
+    }
+
+    ,
+    addRealtimeOwnerOrder: (state, action) => {
+      const incomingOrder = action.payload
+      const incomingShopId = incomingOrder?.shopOrders?.shop?._id || incomingOrder?.shopOrders?.shop
+
+      const alreadyExists = state.myOrders.some((order) => {
+        const existingShopId = order?.shopOrders?.shop?._id || order?.shopOrders?.shop
+        return String(order?._id) === String(incomingOrder?._id)
+          && String(existingShopId) === String(incomingShopId)
+      })
+
+      if (!alreadyExists) {
+        state.myOrders = [incomingOrder, ...state.myOrders]
+        state.ownerUnreadOrders += 1
+      }
+    },
+
+    clearOwnerUnreadOrders: (state) => {
+      state.ownerUnreadOrders = 0
     }
 
     ,
@@ -106,9 +164,10 @@ const userSlice = createSlice({
     clearCart: (state) => {
       state.cartItems = []
       state.totalAmount = 0
+      saveCartState(state.cartItems)
     }
   }
 })
 
-export const { setUserData, setCurrentAddress, setCurrentCity, setCurrentState, setShopsInMyCity, setItemsInMyCity, addToCart, updateQuantity, removeCartItem, setMyOrders, addMyOrder, updateOrderStatus, setSearchItems, setTotalAmount, setSocket, updateRealtimeOrderStatus, clearCart } = userSlice.actions
+export const { setUserData, setCurrentAddress, setCurrentCity, setCurrentState, setShopsInMyCity, setItemsInMyCity, addToCart, updateQuantity, removeCartItem, setMyOrders, addMyOrder, addRealtimeOwnerOrder, clearOwnerUnreadOrders, updateOrderStatus, setSearchItems, setTotalAmount, setSocket, updateRealtimeOrderStatus, clearCart } = userSlice.actions
 export default userSlice.reducer
