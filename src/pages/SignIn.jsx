@@ -6,16 +6,12 @@ import { FcGoogle } from "react-icons/fc";
 import { useNavigate } from 'react-router-dom';
 import axios from "axios"
 import { serverUrl } from '../App';
-import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, signInWithRedirect } from 'firebase/auth';
 import { auth } from '../../firebase';
 import { ClipLoader } from 'react-spinners';
 import { useDispatch } from 'react-redux';
 import { setUserData } from '../redux/userSlice';
 function SignIn() {
-    const primaryColor = "#e23744";
-    const hoverColor = "#e64323";
-    const bgColor = "#fff9f6";
-    const borderColor = "#ddd";
     const [showPassword, setShowPassword] = useState(false)
     const navigate=useNavigate()
     const [email,setEmail]=useState("")
@@ -50,15 +46,24 @@ function SignIn() {
              const result=await signInWithPopup(auth,provider)
              const {data}=await axios.post(`${serverUrl}/api/auth/google-auth`,{
                  email:result.user.email,
+                      fullName:result.user.displayName,
+                      mobile:result.user.phoneNumber,
+                      role:"user"
              },{withCredentials:true})
              dispatch(setUserData(data))
              setGoogleLoading(false)
        } catch (error) {
          console.log(error)
          if(error.code === 'auth/popup-blocked'){
-            setErr("Popup blocked by browser. Please allow popups for this site.")
+                const provider = new GoogleAuthProvider()
+                await signInWithRedirect(auth, provider)
+                return
          } else if(error.code === 'auth/cancelled-popup-request'){
             setErr("Sign-in cancelled. Please try again.")
+            } else if(error.code === 'auth/unauthorized-domain'){
+                setErr("Google sign-in domain not authorized. Add this domain in Firebase Authentication -> Authorized domains.")
+            } else if(error.code === 'auth/invalid-api-key'){
+                setErr("Firebase API key is invalid or missing in production environment variables.")
          } else {
             setErr("Google sign-in failed. Please try again.")
          }

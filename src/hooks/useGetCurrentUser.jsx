@@ -13,6 +13,14 @@ function useGetCurrentUser() {
             dispatch(setUserData(result.data))
   
     } catch (error) {
+        // Ignore expected startup/auth errors to avoid noisy console output
+        if (
+          error.code === "ERR_NETWORK" ||
+          error.response?.status === 400 ||
+          error.response?.status === 401
+        ) {
+          return
+        }
         console.log(error)
     }
 }

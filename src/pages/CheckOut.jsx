@@ -45,31 +45,44 @@ function CheckOut() {
     getAddressByLatLng(lat, lng)
   }
   const getCurrentLocation = () => {
-    // Try to use saved location from database
-    if(userData?.location?.coordinates?.[0] && userData?.location?.coordinates?.[1]) {
-      const latitude = userData.location.coordinates[1]
-      const longitude = userData.location.coordinates[0]
-      dispatch(setLocation({ lat: latitude, lon: longitude }))
-      getAddressByLatLng(latitude, longitude)
-    } else {
-      // Try browser geolocation
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const latitude = position.coords.latitude
-          const longitude = position.coords.longitude
-          dispatch(setLocation({ lat: latitude, lon: longitude }))
-          getAddressByLatLng(latitude, longitude)
-        },
-        (error) => {
-          // Fallback to Barasat center
-          const latitude = 22.7200
-          const longitude = 88.4800
-          dispatch(setLocation({ lat: latitude, lon: longitude }))
-          getAddressByLatLng(latitude, longitude)
-          alert("Location access denied. Using Barasat as default location.")
-        }
-      )
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported in this browser. Please enter address manually.")
+      return
     }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const latitude = position.coords.latitude
+        const longitude = position.coords.longitude
+        dispatch(setLocation({ lat: latitude, lon: longitude }))
+        getAddressByLatLng(latitude, longitude)
+      },
+      (error) => {
+        console.log("Current location fetch failed:", error.message)
+
+        if(userData?.location?.coordinates?.[0] && userData?.location?.coordinates?.[1]) {
+          const latitude = userData.location.coordinates[1]
+          const longitude = userData.location.coordinates[0]
+          dispatch(setLocation({ lat: latitude, lon: longitude }))
+          getAddressByLatLng(latitude, longitude)
+          if (!sessionStorage.getItem("checkoutFallbackLocationNoticeShown")) {
+            alert("Live location was not available. Using your last saved location.")
+            sessionStorage.setItem("checkoutFallbackLocationNoticeShown", "1")
+          }
+          return
+        }
+
+        if (error.code === error.PERMISSION_DENIED && !sessionStorage.getItem("checkoutLocationDeniedNoticeShown")) {
+          alert("Location access denied. Please allow location permission from browser settings.")
+          sessionStorage.setItem("checkoutLocationDeniedNoticeShown", "1")
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 20000,
+        maximumAge: 0,
+      }
+    )
   }
 
   const getAddressByLatLng = async (lat, lng) => {

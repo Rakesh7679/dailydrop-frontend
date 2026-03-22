@@ -9,14 +9,16 @@ function useGetMyshop() {
     const dispatch=useDispatch()
     const {userData}=useSelector(state=>state.user)
   useEffect(()=>{
+  if(!userData || userData.role !== "owner") return
+
   const fetchShop=async () => {
     try {
            const result=await axios.get(`${serverUrl}/api/shop/get-my`,{withCredentials:true})
             dispatch(setMyShopData(result.data))
   
     } catch (error) {
-        if(error.response?.status === 404){
-            // Shop not found is expected for users who haven't created a shop yet
+      if(error.response?.status === 404 || error.response?.status === 400 || error.response?.status === 401){
+        // Missing shop/auth is expected in many startup scenarios
             dispatch(setMyShopData(null))
         } else {
             console.log(error)
@@ -25,7 +27,7 @@ function useGetMyshop() {
 }
 fetchShop()
  
-  },[userData])
+  },[userData, dispatch])
 }
 
 export default useGetMyshop

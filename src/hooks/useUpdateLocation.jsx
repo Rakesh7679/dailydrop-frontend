@@ -11,8 +11,18 @@ function useUpdateLocation() {
     const apiKey=import.meta.env.VITE_GEOAPIKEY
  
     useEffect(()=>{
-        // Only track location for deliveryBoy
-        if(!userData || userData.role !== "deliveryBoy") return
+        // Track live location for deliveryBoy and owner
+        if(!userData || !["deliveryBoy", "owner"].includes(userData.role)) return
+        if(!navigator.geolocation){
+            console.log("Geolocation is not supported by this browser")
+            return
+        }
+
+        const promptNoticeKey = `liveLocationPromptNoticeShown_${userData?._id}`
+        const deniedNoticeKey = `liveLocationDeniedNoticeShown_${userData?._id}`
+        const serviceOffNoticeKey = `liveLocationServiceOffNoticeShown_${userData?._id}`
+
+        let watchId
         
         const updateLocation=async (lat,lon) => {
             try {
@@ -35,25 +45,80 @@ function useUpdateLocation() {
             }
         }
 
-        const watchId = navigator.geolocation.watchPosition(
-            (pos)=>{
-                updateLocation(pos.coords.latitude,pos.coords.longitude)
-            },
-            (error)=>{
-                console.log("Location watch error:", error.message)
-            },
-            {
-                enableHighAccuracy: true,
-                timeout: 10000,
-                maximumAge: 30000
+        const startWatchLocation = () => {
+            watchId = navigator.geolocation.watchPosition(
+                (pos)=>{
+                    updateLocation(pos.coords.latitude,pos.coords.longitude)
+                },
+                (error)=>{
+                    console.log("Location watch error:", error.message)
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 20000,
+                    maximumAge: 0
+                }
+            )
+        }
+
+        const requestInitialLocation = () => {
+            navigator.geolocation.getCurrentPosition(
+                (position)=>{
+                    updateLocation(position.coords.latitude, position.coords.longitude)
+                    startWatchLocation()
+                },
+                (error)=>{
+                    console.log("Initial delivery location fetch failed:", error.message)
+
+                    if (error.code === error.PERMISSION_DENIED && !sessionStorage.getItem(deniedNoticeKey)) {
+                        alert("Location access denied. Please allow location permission from browser settings.")
+                        sessionStorage.setItem(deniedNoticeKey, "1")
+                    }
+
+                    if (
+                        (error.code === error.POSITION_UNAVAILABLE || error.code === error.TIMEOUT) &&
+                        !sessionStorage.getItem(serviceOffNoticeKey)
+                    ) {
+                        alert("Location is off or unavailable. Please turn on your device location service and try again.")
+                        sessionStorage.setItem(serviceOffNoticeKey, "1")
+                    }
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 20000,
+                    maximumAge: 0
+                }
+            )
+        }
+
+        const requestPermissionAwareLocation = async () => {
+            try {
+                if (navigator.permissions?.query) {
+                    const geolocationPermission = await navigator.permissions.query({ name: "geolocation" })
+                    if (geolocationPermission.state === "prompt" && !sessionStorage.getItem(promptNoticeKey)) {
+                        alert("Please turn on location and allow browser permission to continue.")
+                        sessionStorage.setItem(promptNoticeKey, "1")
+                    }
+
+                    if (geolocationPermission.state === "denied" && !sessionStorage.getItem(deniedNoticeKey)) {
+                        alert("Location permission is blocked. Please allow location from browser site settings.")
+                        sessionStorage.setItem(deniedNoticeKey, "1")
+                    }
+                }
+            } catch (error) {
+                console.log("Geolocation permission check failed:", error)
             }
-        )
+
+            requestInitialLocation()
+        }
+
+        requestPermissionAwareLocation()
         
         // Cleanup
         return ()=>{
             if(watchId) navigator.geolocation.clearWatch(watchId)
         }
-    },[userData])
+    },[userData, apiKey, dispatch])
 }
 
 export default useUpdateLocation

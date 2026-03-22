@@ -43,6 +43,7 @@ useUpdateLocation()
   useGetMyOrders()
 
   useEffect(()=>{
+if(!userData) return
 const socketInstance=io(serverUrl,{withCredentials:true})
 dispatch(setSocket(socketInstance))
 socketInstance.on('connect',()=>{
@@ -55,7 +56,7 @@ return ()=>{
     socketInstance.disconnect()
   }
 }
-  },[userData?._id])
+  },[userData?._id, dispatch, userData])
 
   return (
     <>

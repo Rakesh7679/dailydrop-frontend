@@ -12,6 +12,16 @@ function useGetCity() {
     
     useEffect(()=>{
         if(!userData) return
+        if(!navigator.geolocation){
+            console.log("Geolocation is not supported by this browser")
+            return
+        }
+
+        const promptNoticeKey = `locationPromptNoticeShown_${userData?._id}`
+        const deniedNoticeKey = `locationDeniedNoticeShown_${userData?._id}`
+        const serviceOffNoticeKey = `locationServiceOffNoticeShown_${userData?._id}`
+
+        let watchId
         
         const updateCity = async (latitude, longitude) => {
             dispatch(setLocation({lat:latitude,lon:longitude}))
@@ -25,36 +35,84 @@ function useGetCity() {
                 dispatch(setAddress(result?.data?.results[0]?.address_line2 || "Barasat"))
             } catch (error) {
                 console.log("Location API error:", error)
-                dispatch(setCurrentCity("Delhi"))
-                dispatch(setCurrentState("Delhi"))
             }
         }
-        
-        // Watch position for real-time updates
-        const watchId = navigator.geolocation.watchPosition(
-            (position)=>{
-                console.log("Location changed:", position.coords)
-                updateCity(position.coords.latitude, position.coords.longitude)
-            },
-            (error)=>{
-                console.log("Location denied, using Barasat as default")
-                dispatch(setCurrentCity("Barasat"))
-                dispatch(setCurrentState("West Bengal"))
-                dispatch(setCurrentAddress("Barasat, West Bengal"))
-                dispatch(setLocation({ lat: 22.7200, lon: 88.4800 }))
-            },
-            {
-                enableHighAccuracy: true,
-                timeout: 10000,
-                maximumAge: 60000 // Use cached position if less than 1 minute old
+
+        const startWatchLocation = () => {
+            watchId = navigator.geolocation.watchPosition(
+                (position)=>{
+                    console.log("Location changed:", position.coords)
+                    updateCity(position.coords.latitude, position.coords.longitude)
+                },
+                (error)=>{
+                    console.log("Location watch error:", error.message)
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 20000,
+                    maximumAge: 0
+                }
+            )
+        }
+
+        const requestInitialLocation = () => {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    updateCity(position.coords.latitude, position.coords.longitude)
+                    startWatchLocation()
+                },
+                (error) => {
+                    console.log("Initial location access failed:", error.message)
+
+                    if (error.code === error.PERMISSION_DENIED && !sessionStorage.getItem(deniedNoticeKey)) {
+                        alert("Location access denied. Please allow location permission from browser settings.")
+                        sessionStorage.setItem(deniedNoticeKey, "1")
+                    }
+
+                    if (
+                        (error.code === error.POSITION_UNAVAILABLE || error.code === error.TIMEOUT) &&
+                        !sessionStorage.getItem(serviceOffNoticeKey)
+                    ) {
+                        alert("Location is off or unavailable. Please turn on your device location service and try again.")
+                        sessionStorage.setItem(serviceOffNoticeKey, "1")
+                    }
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 20000,
+                    maximumAge: 0
+                }
+            )
+        }
+
+        const requestPermissionAwareLocation = async () => {
+            try {
+                if (navigator.permissions?.query) {
+                    const geolocationPermission = await navigator.permissions.query({ name: "geolocation" })
+                    if (geolocationPermission.state === "prompt" && !sessionStorage.getItem(promptNoticeKey)) {
+                        alert("Please turn on location and allow browser permission to continue.")
+                        sessionStorage.setItem(promptNoticeKey, "1")
+                    }
+
+                    if (geolocationPermission.state === "denied" && !sessionStorage.getItem(deniedNoticeKey)) {
+                        alert("Location permission is blocked. Please allow location from browser site settings.")
+                        sessionStorage.setItem(deniedNoticeKey, "1")
+                    }
+                }
+            } catch (error) {
+                console.log("Geolocation permission check failed:", error)
             }
-        )
+
+            requestInitialLocation()
+        }
+
+        requestPermissionAwareLocation()
         
         // Cleanup
         return ()=>{
             if(watchId) navigator.geolocation.clearWatch(watchId)
         }
-    },[userData])
+    },[userData, apiKey, dispatch])
 }
 
 export default useGetCity
