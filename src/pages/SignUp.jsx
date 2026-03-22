@@ -11,11 +11,17 @@ import { auth } from '../../firebase';
 import { ClipLoader } from "react-spinners"
 import { useDispatch } from 'react-redux';
 import { setUserData } from '../redux/userSlice';
+
+const persistAuthToken = (payload) => {
+    const token = payload?.authToken
+    if (!token) return payload
+    localStorage.setItem("authToken", token)
+    axios.defaults.headers.common.Authorization = `Bearer ${token}`
+    const { authToken: _AUTH_TOKEN, ...userPayload } = payload
+    return userPayload
+}
+
 function SignUp() {
-    const primaryColor = "#e23744";
-    const hoverColor = "#e64323";
-    const bgColor = "#fff9f6";
-    const borderColor = "#ddd";
     const [showPassword, setShowPassword] = useState(false)
     const [role, setRole] = useState("user")
     const navigate=useNavigate()
@@ -33,7 +39,8 @@ function SignUp() {
             const result=await axios.post(`${serverUrl}/api/auth/signup`,{
                 fullName,email,password,mobile,role
             },{withCredentials:true})
-            dispatch(setUserData(result.data))
+            const userPayload = persistAuthToken(result.data)
+            dispatch(setUserData(userPayload))
             setErr("")
             setLoading(false)
         } catch (error) {
@@ -61,7 +68,8 @@ function SignUp() {
                 role,
                 mobile
             },{withCredentials:true})
-            dispatch(setUserData(data))
+            const userPayload = persistAuthToken(data)
+            dispatch(setUserData(userPayload))
             setGoogleLoading(false)
         } catch (error) {
             console.log(error)

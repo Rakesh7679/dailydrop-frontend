@@ -11,6 +11,16 @@ import { auth } from '../../firebase';
 import { ClipLoader } from 'react-spinners';
 import { useDispatch } from 'react-redux';
 import { setUserData } from '../redux/userSlice';
+
+const persistAuthToken = (payload) => {
+    const token = payload?.authToken
+    if (!token) return payload
+    localStorage.setItem("authToken", token)
+    axios.defaults.headers.common.Authorization = `Bearer ${token}`
+    const { authToken: _AUTH_TOKEN, ...userPayload } = payload
+    return userPayload
+}
+
 function SignIn() {
     const [showPassword, setShowPassword] = useState(false)
     const navigate=useNavigate()
@@ -26,7 +36,8 @@ function SignIn() {
             const result=await axios.post(`${serverUrl}/api/auth/signin`,{
                 email,password
             },{withCredentials:true})
-           dispatch(setUserData(result.data))
+            const userPayload = persistAuthToken(result.data)
+           dispatch(setUserData(userPayload))
             setErr("")
             setLoading(false)
         } catch (error) {
@@ -50,7 +61,8 @@ function SignIn() {
                       mobile:result.user.phoneNumber,
                       role:"user"
              },{withCredentials:true})
-             dispatch(setUserData(data))
+            const userPayload = persistAuthToken(data)
+             dispatch(setUserData(userPayload))
              setGoogleLoading(false)
        } catch (error) {
          console.log(error)

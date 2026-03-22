@@ -13,7 +13,7 @@ function DeliveryBoy() {
   const {userData,socket}=useSelector(state=>state.user)
   const [currentOrder,setCurrentOrder]=useState()
   const [showOtpBox,setShowOtpBox]=useState(false)
-  const [availableAssignments,setAvailableAssignments]=useState(null)
+  const [availableAssignments,setAvailableAssignments]=useState([])
   const [otp,setOtp]=useState("")
   const [todayDeliveries,setTodayDeliveries]=useState([])
 const [deliveryBoyLocation,setDeliveryBoyLocation]=useState(null)
@@ -118,8 +118,9 @@ const totalEarning=todayDeliveries.reduce((sum,d)=>sum + d.count*ratePerDelivery
   }
 
   useEffect(()=>{
+    if(!socket) return
     socket.on('newAssignment',(data)=>{
-      setAvailableAssignments(prev=>([...prev,data]))
+      setAvailableAssignments(prev=>([...(prev || []),data]))
     })
     return ()=>{
       socket.off('newAssignment')
@@ -175,7 +176,7 @@ handleTodayDeliveries()
   return (
     <div className='w-screen min-h-screen flex flex-col gap-5 items-center bg-[#fff9f6] overflow-y-auto pt-20 pb-6'>
       <Nav/>
-      <div className='w-full max-w-[800px] flex flex-col gap-5 items-center px-4'>
+      <div className='w-full max-w-200 flex flex-col gap-5 items-center px-4'>
     <div className='bg-white rounded-2xl shadow-md p-5 flex flex-col justify-start items-center w-full border border-orange-100 text-center gap-2'>
 <h1 className='text-xl font-bold text-[#e23744]'>Welcome, {userData.fullName}</h1>
 <div className='flex items-center gap-2 text-gray-600'>
@@ -185,7 +186,7 @@ handleTodayDeliveries()
     </div>
 
 {/* Available/Current Orders - Shows first on mobile */}
-{!currentOrder && <div className='bg-white rounded-2xl p-5 shadow-md w-full border border-orange-100 order-first md:order-none'>
+{!currentOrder && <div className='bg-white rounded-2xl p-5 shadow-md w-full border border-orange-100 order-first md:order-0'>
 <h1 className='text-lg font-bold mb-4 flex items-center gap-2'>Available Orders</h1>
 
 <div className='space-y-4'>
@@ -207,7 +208,7 @@ availableAssignments.map((a,index)=>(
 </div>
 </div>}
 
-{currentOrder && <div className='bg-white rounded-2xl p-5 shadow-md w-full border border-orange-100 order-first md:order-none'>
+{currentOrder && <div className='bg-white rounded-2xl p-5 shadow-md w-full border border-orange-100 order-first md:order-0'>
 <h2 className='text-lg font-bold mb-3'>📦Current Order</h2>
 <div className='border rounded-lg p-4 mb-3'>
   <p className='font-semibold text-sm'>{currentOrder?.shopOrder.shop.name}</p>
